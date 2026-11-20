@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: video-ia
+    runtime: docker
+    plan: free
+    healthCheckPath: /
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
