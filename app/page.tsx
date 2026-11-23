@@ -1,0 +1,144 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { Sparkles, Clapperboard, ImagePlus, Download, Share2, CheckCircle2, LoaderCircle, Trash2, WandSparkles } from "lucide-react";
+
+type Result = { videoUrl: string; duration: number; photoCount: number };
+
+export default function Home() {
+  const [company, setCompany] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [photos, setPhotos] = useState<File[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState("");
+  const [error, setError] = useState("");
+  const [result, setResult] = useState<Result | null>(null);
+
+  const previews = useMemo(() => photos.map((file) => ({
+    name: file.name, url: URL.createObjectURL(file)
+  })), [photos]);
+
+  function addFiles(fileList: FileList | null) {
+    if (!fileList) return;
+    setError("");
+    setResult(null);
+    const incoming = Array.from(fileList).filter(f => f.type.startsWith("image/"));
+    setPhotos(current => [...current, ...incoming].slice(0, 30));
+  }
+
+  function removePhoto(index: number) {
+    setPhotos(current => current.filter((_, i) => i !== index));
+  }
+
+  async function createVideo() {
+    setError("");
+    setResult(null);
+    if (!company.trim()) return setError("Informe o nome da empresa.");
+    if (photos.length < 5 || photos.length > 30) return setError("Selecione entre 5 e 30 fotos.");
+    setBusy(true);
+    setStatus("Enviando fotos...");
+    try {
+      const form = new FormData();
+      form.append("company", company.trim());
+      form.append("whatsapp", whatsapp.trim());
+      photos.forEach(file => form.append("photos", file));
+      setStatus("Montando seu vídeo promocional...");
+      const response = await fetch("/api/generate", { method: "POST", body: form });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Não foi possível gerar o vídeo.");
+      setResult(data);
+      setStatus("Vídeo concluído!");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro inesperado.");
+      setStatus("");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function shareVideo() {
+    if (!result) return;
+    const url = new URL(result.videoUrl, window.location.origin).toString();
+    if (navigator.share) {
+      try { await navigator.share({ title: `Vídeo ${company}`, url }); } catch {}
+    } else {
+      await navigator.clipboard.writeText(url);
+      alert("Link copiado!");
+    }
+  }
+
+  return (
+    <main className="min-h-screen px-4 py-8 md:px-8">
+      <div className="mx-auto max-w-5xl">
+        <header className="mb-10 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-violet-600 text-white"><Clapperboard size={23}/></div>
+            <div><div className="text-lg font-black tracking-tight">VÍDEO IA</div><div className="text-xs text-slate-500">Sua empresa em movimento</div></div>
+          </div>
+          <span className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700">PROTÓTIPO</span>
+        </header>
+
+        <section className="grid gap-8 md:grid-cols-[1fr_0.9fr]">
+          <div className="rounded-3xl bg-[#17152c] p-7 text-white shadow-xl md:p-10">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs text-violet-200"><Sparkles size={14}/> CRIAÇÃO AUTOMÁTICA</div>
+            <h1 className="max-w-lg text-4xl font-black leading-tight md:text-5xl">Suas fotos.<br/><span className="text-violet-300">Seu vídeo.</span><br/>Automaticamente.</h1>
+            <p className="mt-5 max-w-md text-sm leading-6 text-slate-300">Envie as fotos da sua empresa e receba um vídeo vertical pronto para publicar no Instagram e compartilhar no WhatsApp.</p>
+            <div className="mt-8 grid grid-cols-3 gap-3 text-center text-xs">
+              <div className="rounded-2xl bg-white/10 p-3"><ImagePlus className="mx-auto mb-2" size={20}/>Envie fotos</div>
+              <div className="rounded-2xl bg-white/10 p-3"><WandSparkles className="mx-auto mb-2" size={20}/>Automático</div>
+              <div className="rounded-2xl bg-white/10 p-3"><Download className="mx-auto mb-2" size={20}/>Baixe pronto</div>
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-7">
+            <div className="mb-6">
+              <h2 className="text-xl font-bold">Crie seu vídeo promocional</h2>
+              <p className="mt-1 text-sm text-slate-500">Preencha os dados e selecione de 5 a 30 fotos.</p>
+            </div>
+
+            <label className="mb-2 block text-sm font-semibold">Nome da empresa *</label>
+            <input value={company} onChange={e => setCompany(e.target.value)} placeholder="Ex.: Restaurante Sabor Mineiro" className="mb-4 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"/>
+            <label className="mb-2 block text-sm font-semibold">WhatsApp comercial (opcional)</label>
+            <input value={whatsapp} onChange={e => setWhatsapp(e.target.value)} placeholder="(34) 99999-9999" className="mb-5 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"/>
+
+            <label className="flex cursor-pointer flex-col items-center rounded-2xl border-2 border-dashed border-violet-300 bg-violet-50/60 px-4 py-7 text-center hover:bg-violet-50">
+              <ImagePlus className="mb-2 text-violet-600" size={30}/>
+              <span className="text-sm font-bold text-slate-800">Selecionar fotos</span>
+              <span className="mt-1 text-xs text-slate-500">JPG, PNG ou WebP • 5 a 30 imagens</span>
+              <input type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden" onChange={e => addFiles(e.target.files)}/>
+            </label>
+
+            <div className="mt-4 flex items-center justify-between text-sm">
+              <span className="font-semibold">Fotos selecionadas</span><span className="text-slate-500">{photos.length}/30</span>
+            </div>
+            {previews.length > 0 && <div className="mt-3 grid grid-cols-5 gap-2">
+              {previews.map((p, i) => <div key={`${p.name}-${i}`} className="group relative aspect-square overflow-hidden rounded-lg bg-slate-100">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={p.url} alt={p.name} className="h-full w-full object-cover"/>
+                <button onClick={() => removePhoto(i)} className="absolute right-1 top-1 rounded-full bg-black/70 p-1 text-white" aria-label="Remover foto"><Trash2 size={12}/></button>
+              </div>)}
+            </div>}
+
+            <button onClick={createVideo} disabled={busy} className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 py-4 text-sm font-bold text-white shadow-lg shadow-violet-200 transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60">
+              {busy ? <><LoaderCircle className="animate-spin" size={18}/> Criando vídeo...</> : <><Sparkles size={18}/> CRIAR MEU VÍDEO</>}
+            </button>
+            {status && <p className="mt-3 text-center text-sm text-violet-700">{status}</p>}
+            {error && <p role="alert" className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+          </div>
+        </section>
+
+        {result && <section className="mt-8 rounded-3xl border border-emerald-200 bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-center gap-2 font-bold text-emerald-700"><CheckCircle2/> Seu vídeo está pronto!</div>
+          <video src={result.videoUrl} controls playsInline className="mx-auto max-h-[620px] rounded-2xl bg-black"/>
+          <p className="mt-3 text-center text-xs text-slate-500">{result.photoCount} fotos • {result.duration}s • MP4 vertical 1080 × 1920</p>
+          <div className="mt-5 flex flex-col justify-center gap-3 sm:flex-row">
+            <a href={result.videoUrl} download className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-6 py-3 text-sm font-bold text-white"><Download size={17}/> Baixar vídeo</a>
+            <button onClick={shareVideo} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-6 py-3 text-sm font-bold"><Share2 size={17}/> Compartilhar</button>
+          </div>
+        </section>}
+
+        <footer className="mt-10 text-center text-xs text-slate-400">Projeto experimental • As fotos são processadas no servidor local durante o protótipo.</footer>
+      </div>
+    </main>
+  );
+}
