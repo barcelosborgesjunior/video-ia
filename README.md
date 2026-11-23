@@ -71,3 +71,14 @@ Nunca exponha chaves privadas do Supabase, R2 ou provedor de IA no navegador.
 ## Observação sobre upload
 
 O limite de 30 fotos e 12 MB por arquivo é uma regra da aplicação. Hospedagens serverless podem impor limites menores ao corpo da requisição; em produção, o navegador deverá enviar diretamente para o armazenamento usando URLs assinadas.
+
+
+## Versão 2 — estilo automático por segmento
+
+- Seleção do ramo (restaurante, imobiliária, hotel, clínica, varejo, serviços ou geral).
+- Textos de abertura, mensagens comerciais e chamada final gravados no vídeo.
+- Campo opcional de oferta/destaque e WhatsApp na chamada final.
+- Trilha instrumental original incluída no projeto e mixada ao vídeo.
+- A seleção de estilo e textos é baseada em regras por segmento; esta versão ainda não usa análise visual por IA das fotos nem geração de copy por modelo externo.
+
+A trilha foi criada especificamente para este protótipo. Antes de uso comercial em escala, faça validação de áudio, direitos e desempenho no ambiente de hospedagem. O Render gratuito pode ter limites de memória, duração e armazenamento efêmero.
